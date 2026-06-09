@@ -1,0 +1,34 @@
+name: traj_opt
+
+# Before running any of these services, run 'xhost +local:' to allow
+# connections to the host x server from the container.
+
+services:
+  sim:
+    image: traj_opt:latest
+    build: .
+    environment:
+      - DISPLAY=${DISPLAY}
+      # Allow use of the GPU. Follow these instructions to install and test the
+      # nvidia container toolkit:
+      # https://docs.docker.com/engine/containers/resource_constraints/#gpu
+      - NVIDIA_DRIVER_CAPABILITIES=all
+      - NVIDIA_VISIBLE_DEVICES=all
+      # This enables using the CPU for graphics, which is very slow!
+      #- LIBGL_ALWAYS_SOFTWARE=1
+      # Set CMAKE variables to find installed packages
+      - CMAKE_PREFIX_PATH=/home/ubuntu/Downloads/mujoco_install:/opt/openrobots
+    runtime: nvidia
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - ${TRAJ_OPT_WS}:/home/ubuntu/local_dir
+    network_mode: host
+    # give the container a command to keep it up without doing any useful work
+    command: tail -f /dev/null
+    devices:
+      # set the SERIAL_DEV_MAP to "/dev/ttyACM0:/dev/ttyACM0" when hardware is
+      # connected
+      - ${SERIAL_DEV_MAP:-/dev/null:/dev/null}
+
+# Refs:
+# - GUI with docker: https://www.howtogeek.com/devops/how-to-run-gui-applications-in-a-docker-container/
