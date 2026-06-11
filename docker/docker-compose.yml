@@ -1,0 +1,11 @@
+name: rbe511
+
+services:
+  homework:
+    image: rbe511-homework:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    working_dir: /app
+    volumes:
+      - ..:/app
