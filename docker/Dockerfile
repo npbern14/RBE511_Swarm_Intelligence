@@ -4,6 +4,7 @@ WORKDIR /app
 
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
+ENV MPLBACKEND=Agg
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
@@ -14,10 +15,11 @@ RUN pip install --no-cache-dir poetry
 
 ENV POETRY_VIRTUALENVS_CREATE=false
 
-COPY pyproject.toml poetry.lock ./
+COPY pyproject.toml ./
 
-RUN poetry install --no-root
+RUN poetry lock --no-interaction
+RUN poetry install --no-root --no-interaction --no-ansi
 
 COPY . .
 
-CMD ["python"]
+CMD ["python", "HW_3/HW_3.py"]

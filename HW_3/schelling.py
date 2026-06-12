@@ -1,7 +1,12 @@
 import numpy as np
 
+import matplotlib
+matplotlib.use("Agg")
+
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
+from matplotlib.animation import FuncAnimation, PillowWriter
+import os
 
 #Store all parameters and behavior of the Schelling Segregation model
 class SchellGrid:
@@ -61,19 +66,23 @@ class SchellGrid:
 		return self.grid
 
 	def simulation_run(self):
-	#call satisfy grid, then render the grid for each time step. Repeat until max sim timesteps is reached
-		t = 0
+		# Store grid history for animation
+		self.grid_history = [self.grid.copy()]
+		self.t = 0
 
-		while t <= self.sim_steps:
-			self.satisfy_grid()
-			self.render_grid(t)
-			t += 1
-
-		plt.show()
+		while self.t < self.sim_steps:
+			moved_any_agent = self.satisfy_grid()
+			'''
+			if moved_any_agent == False:
+				break
+			'''
+		self.render_grid()
 		return
 
 	def satisfy_grid(self):
 	#check the satisfaction of all agents by looping through the grid. If not satisfied, move agent to the closest position that leads to satisfaction then check next agent
+		moved_any_agent = False
+
 		for i in range(self.rows):
 			for j in range(self.columns):
 
@@ -84,9 +93,17 @@ class SchellGrid:
 						new_row = satisfied_space[0]
 						new_col = satisfied_space[1]
 
-						self.move_agent(i, j, new_row, new_col)
+						agent_moved = self.move_agent(i, j, new_row, new_col)
 
-		return
+						if agent_moved:
+							self.t += 1
+							self.grid_history.append(self.grid.copy())
+							moved_any_agent = True
+
+							if self.t >= self.sim_steps:
+								return moved_any_agent
+
+		return moved_any_agent
 
 	def check_if_satisfied(self, row, col, agent_type=None):
 	#check if the cell is surrounded by a number of cells of the same type equal to the tolerance defined for the SchellGrid class
@@ -184,63 +201,69 @@ class SchellGrid:
 
 		return True
 
-	def render_grid(self, t):
-	#render the grid with the current positions of all agents
+	def render_grid(self):
+		# Save animation of the grid history as a GIF
 
-		# Colors:
-		# 0 = empty
-		# 1 = group 1
-		# 2 = group 2
+		os.makedirs("output", exist_ok=True)
+
 		colors = ["white", "tab:blue", "tab:orange", "tab:green", "tab:red", "tab:purple"]
 		cmap = ListedColormap(colors[:self.num_groups + 1])
 
-		# Create the plot only the first time this function is called
-		if not hasattr(self, "fig"):
-			self.fig, self.ax = plt.subplots()
+		fig, ax = plt.subplots()
 
-			self.grid_image = self.ax.imshow(
-				self.grid,
-				cmap=cmap,
-				vmin=0,
-				vmax=self.num_groups
-			)
+		grid_image = ax.imshow(
+			self.grid_history[0],
+			cmap=cmap,
+			vmin=0,
+			vmax=self.num_groups
+		)
 
-			self.ax.set_title("Schelling Model")
+		ax.set_title("Schelling Model")
 
-			# Draw grid lines between cells
-			self.ax.set_xticks(np.arange(-0.5, self.columns, 1), minor=True)
-			self.ax.set_yticks(np.arange(-0.5, self.rows, 1), minor=True)
-			self.ax.grid(which="minor", color="black", linestyle="-", linewidth=0.5)
+		ax.set_xticks(np.arange(-0.5, self.columns, 1), minor=True)
+		ax.set_yticks(np.arange(-0.5, self.rows, 1), minor=True)
+		ax.grid(which="minor", color="black", linestyle="-", linewidth=0.2)
 
-			# Hide axis labels/ticks
-			self.ax.tick_params(
-				which="both",
-				bottom=False,
-				left=False,
-				labelbottom=False,
-				labelleft=False
-			)
+		ax.tick_params(
+			which="both",
+			bottom=False,
+			left=False,
+			labelbottom=False,
+			labelleft=False
+		)
+		P = str(self.fill_percent)
+		t = str(self.satisfaction_threshold)
 
-			# Display timestep at bottom of plot
-			self.time_text = self.ax.text(
-				0.5,
-				-0.08,
-				f"t = {t}",
-				transform=self.ax.transAxes,
-				ha="center",
-				va="top",
-				fontsize=12
-			)
+		time_text = ax.text(
+			0.5,
+			-0.08,
+			f"P = {P} , t = {t}, step = 0",
+			transform=ax.transAxes,
+			ha="center",
+			va="top",
+			fontsize=12
+		)
 
-			plt.subplots_adjust(bottom=0.15)
-			plt.show(block=False)
+		plt.subplots_adjust(bottom=0.15)
 
-		# Update the existing plot on every later call
-		else:
-			self.grid_image.set_data(self.grid)
-			self.time_text.set_text(f"t = {t}")
+		def update(frame):
+			grid_image.set_data(self.grid_history[frame])
+			time_text.set_text(f"P = {P} , t = {t}, step = {frame}")
+			return grid_image, time_text
 
-		plt.pause(0.1)
+		anim = FuncAnimation(
+			fig,
+			update,
+			frames=len(self.grid_history),
+			interval=200,
+			blit=False
+		)
+
+		anim.save("output/schelling.gif", writer=PillowWriter(fps=50))
+
+		plt.close(fig)
+
+		print("Saved animation to output/schelling.gif")
 
 		return
 
