@@ -9,3 +9,4 @@ services:
     working_dir: /app
     volumes:
       - ..:/app
+    command: python HW_3/HW_3.py
