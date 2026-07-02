@@ -1,0 +1,6 @@
+[submodule "argos3"]
+	path = argos3
+	url = https://github.com/ilpincy/argos3
+[submodule "Buzz"]
+	path = Buzz
+	url = https://github.com/buzz-lang/Buzz
